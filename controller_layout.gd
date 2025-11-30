@@ -67,8 +67,8 @@ func set_optimized_controller_settings():
             event.axis = custom_action_bindings[action]['axis']
             event.axis_value = custom_action_bindings[action]['axis_value']
         if custom_action_bindings[action]['type'] != EventType.MOTION && custom_action_bindings[action]['type'] != EventType.BUTTON:
-            print("custom action has no valid event type (BUTTION, MOTION)")
-            return
+            print("custom action has no valid event type (BUTTON, MOTION)")
+            continue
         remove_JoyEvents(action, InputMap.action_get_events(action))
         InputMap.action_add_event(action, event)
 
