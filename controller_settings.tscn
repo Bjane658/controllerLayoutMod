@@ -1,0 +1,20 @@
+[gd_scene load_steps=2 format=3 uid="uid://c8m8cwem0aqhi"]
+
+[ext_resource type="FontFile" uid="uid://8x2jsl6a065e" path="res://fonts/Varnished.ttf" id="1_5x7hw"]
+
+[node name="ControllerSettings" type="Node2D"]
+
+[node name="ColorRect" type="ColorRect" parent="."]
+offset_left = 140.0
+offset_top = 24.0
+offset_right = 467.0
+offset_bottom = 322.0
+color = Color(0, 0, 0, 1)
+
+[node name="Label" type="Label" parent="."]
+offset_left = 231.0
+offset_top = 39.0
+offset_right = 376.0
+offset_bottom = 62.0
+theme_override_fonts/font = ExtResource("1_5x7hw")
+text = "Controller Settings"
