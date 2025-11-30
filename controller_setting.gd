@@ -105,6 +105,7 @@ func _on_rebind_pressed(action: String, row):
     row.get_node("BindingLabel").text = "Press a button..."
     setting_new_binding = true
     setting_new_binding_for = action
+    print("setting_new_binding_for: " + action)
     # Wait for input and update binding
     
 
@@ -128,6 +129,7 @@ func extrapolateAxisValue(axis_value):
     return 1.0
     
 func updateAxisValue(event: InputEventJoypadMotion, axis: int, axis_value: float):
+    event.set_axis(axis)
     event.set_axis_value(axis_value)
     return event
 
@@ -159,11 +161,17 @@ func bindMoveActions(event: InputEventJoypadMotion):
         var moveActionEvents = InputMap.action_get_events(moveAction)
         remove_JoyEvents(moveAction, moveActionEvents)
         addMoveActionEvent(event, moveAction)
+        var newMoveActionEvents = InputMap.action_get_events(moveAction)
+        for newMoveActionEvent in newMoveActionEvents:
+            if newMoveActionEvent is InputEventJoypadMotion:
+                print("New move action event for " + moveAction + "axis: " + str(newMoveActionEvent.axis) + " value: " + str(newMoveActionEvent.axis_value))
         
     
 func _input(event):
     print("got input in controller_setting")
     print(event.get_class())
+    if event is InputEventJoypadMotion:
+        print("Motion: axis: " + str(event.axis) + " value: " + str(event.axis_value))
     if setting_new_binding and (event is InputEventJoypadButton or event is InputEventJoypadMotion):
         if setting_new_binding_for == "move":
             print("rebind move")
