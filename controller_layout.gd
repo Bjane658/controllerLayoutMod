@@ -7,6 +7,57 @@ var controllerSettingScenePath = ""
 var settingsScreen
 var settings_instance = null
 
+enum EventType { BUTTON, MOTION}
+
+var custom_action_bindings = {
+    "move_up": {
+        "type": EventType.MOTION,
+        "axis": JOY_AXIS_LEFT_Y,
+        "axis_value"  : -1.0
+    },
+    "move_down": {
+        "type": EventType.MOTION,
+        "axis": JOY_AXIS_LEFT_Y,
+        "axis_value"  : 1.0
+    },
+    "move_left": {
+        "type": EventType.MOTION,
+        "axis": JOY_AXIS_LEFT_X,
+        "axis_value"  : -1.0
+    },
+    "move_right": {
+        "type": EventType.MOTION,
+        "axis": JOY_AXIS_LEFT_X,
+        "axis_value"  : 1.0
+    },
+    "inv_up": {
+        "type": EventType.BUTTON,
+        "button_index": JOY_BUTTON_DPAD_UP
+    },
+    "inv_down": {
+        "type": EventType.BUTTON,
+        "button_index": JOY_BUTTON_DPAD_DOWN
+    },
+    "inv_left": {
+        "type": EventType.BUTTON,
+        "button_index": JOY_BUTTON_DPAD_LEFT  
+    },
+    "inv_right": {
+        "type": EventType.BUTTON,
+        "button_index": JOY_BUTTON_DPAD_RIGHT  
+    },
+    "notebook_left": {
+        "type": EventType.MOTION,
+        "axis": JOY_AXIS_RIGHT_X,
+        "axis_value"  : -1.0
+    },
+    "notebook_right": {
+        "type": EventType.MOTION,
+        "axis": JOY_AXIS_RIGHT_X,
+        "axis_value"  : 1.0
+    }
+}
+
 func _on_loaded():
     var dir_path = ProjectSettings.get_setting("global/mod_directory")
     #var dir_path = OS.get_executable_path().get_base_dir() + 
@@ -15,22 +66,7 @@ func _on_loaded():
     inputHandlerPath = dir_path + "/controllerLayoutMod/input_handler.gd"
     controllerSettingScenePath = dir_path + "/controllerLayoutMod/controller_setting.tscn"
     print("Mod dir: " + dir_path)
-    #print("input_handler dir: " + inputHandlerPath)
 
-
-    print("Loaded controller layout mod, juhu")
-   # print("Connected joypads: ", Input.get_connected_joypads())
-    #print("Set invUp - events: ", InputMap.action_get_events("inv_up"))
-    #var invUp = InputEventJoypadButton.new()
-    #invUp.button_index = JOY_BUTTON_DPAD_UP
-    #invUp.device = -1
-    #InputMap.action_add_event("inv_up", invUp)
-    #print("Set invUp")
-    #print("Set invUp - events: ", InputMap.action_get_events("inv_up"))
-    #var invDown = InputEventJoypadButton.new()
-    #invDown.button_index = JOY_BUTTON_DPAD_DOWN
-    #InputMap.action_add_event("inv_down", invDown)
-    #print("Set invDown")
     set_optimized_controller_settings()
 
 
@@ -42,13 +78,31 @@ func _on_loaded():
 
 func _add_to_tree():
     Engine.get_main_loop().root.add_child(self)
-
+    
 func set_optimized_controller_settings():
+    for action in custom_action_bindings:
+        print("Set binding for: " + action)
+        var event
+        if custom_action_bindings[action]['type'] == EventType.BUTTON:
+            event = InputEventJoypadButton.new()
+            event.button_index = custom_action_bindings[action]['button_index']
+    
+        if custom_action_bindings[action]['type'] == EventType.MOTION:
+            event = InputEventJoypadMotion.new()
+            event.axis = custom_action_bindings[action]['axis']
+            event.axis_value = custom_action_bindings[action]['axis_value']
+        if custom_action_bindings[action]['type'] != EventType.MOTION && custom_action_bindings[action]['type'] != EventType.BUTTON:
+            print("custom action has no valid event type (BUTTION, MOTION)")
+            return
+        remove_JoyEvents(action, InputMap.action_get_events(action))
+        InputMap.action_add_event(action, event)
+
+
+func set_optimized_controller_settings_manual():
     print("set optimized controller settings")
     remove_JoyEvents("inv_up", InputMap.action_get_events("inv_up"))
     var invUp = InputEventJoypadButton.new()
     invUp.button_index = JOY_BUTTON_DPAD_UP
-    invUp.device = -1
     InputMap.action_add_event("inv_up", invUp)
     print("Set invUp")
     remove_JoyEvents("inv_down", InputMap.action_get_events("inv_down"))
