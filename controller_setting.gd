@@ -4,6 +4,7 @@ extends Control
 var binding_row_scene
 var setting_new_binding = false
 var setting_new_binding_for
+var setting_new_binding_row
 
 # Define your actions and their display names
 var actions = {
@@ -29,6 +30,9 @@ var move_actions = {
 }
 
 func _ready():
+    get_tree().paused = true
+    process_mode = Node.PROCESS_MODE_WHEN_PAUSED
+
     var dir_path = ProjectSettings.localize_path(ProjectSettings.get_setting("global/mod_directory"))
     #var dir_path = ProjectSettings.get_setting("global/mod_directory")
     var binding_row_scene_path = ProjectSettings.localize_path(dir_path + "/controllerLayoutMod/binding_row.tscn")
@@ -76,6 +80,13 @@ func get_action_binding(action: String) -> String:
                 return get_motion_name(event.axis, event.axis_value)
     return "Not bound"
 
+func getJoyName(event):
+    if event is InputEventJoypadButton:
+         return get_button_name(event.button_index)
+    if event is InputEventJoypadMotion:
+         return get_motion_name(event.axis, event.axis_value)
+    return "n/a"
+
 func get_motion_name(axis_index: int, axis_value: float) -> String:
     if axis_index == 0 or axis_index == 1:
         return "L-Stick"
@@ -101,13 +112,12 @@ func get_button_name(button_index: int) -> String:
         _: return "Button " + str(button_index)
 
 func _on_rebind_pressed(action: String, row):
-    # TODO: Implement rebinding logic
     print("Rebinding action: ", action)
     row.get_node("BindingLabel").text = "Press a button..."
     setting_new_binding = true
     setting_new_binding_for = action
+    setting_new_binding_row = row
     print("setting_new_binding_for: " + action)
-    # Wait for input and update binding
     
 
 func remove_JoyEvents(action: String, events: Array):
@@ -169,10 +179,6 @@ func bindMoveActions(event: InputEventJoypadMotion):
         
     
 func _input(event):
-    print("got input in controller_setting")
-    print(event.get_class())
-    if event is InputEventJoypadMotion:
-        print("Motion: axis: " + str(event.axis) + " value: " + str(event.axis_value))
     if setting_new_binding and (event is InputEventJoypadButton or event is InputEventJoypadMotion):
         if setting_new_binding_for == "move":
             print("rebind move")
@@ -185,16 +191,17 @@ func _input(event):
                 event.axis_value = extrapolateAxisValue(event.axis_value)
             InputMap.action_add_event(setting_new_binding_for, event)
             print("Sett new input for " + setting_new_binding_for)
+            setting_new_binding_row.get_node("BindingLabel").text = getJoyName(event)
         setting_new_binding = false
         setting_new_binding_for = ""
-        _ready()
-    if setting_new_binding and event is InputEventKey:
-        _ready()
+        setting_new_binding_row = null
 
 func _on_save_pressed():
     print("Settings saved")
+    get_tree().paused = false
     queue_free()
 
 func _on_cancel_pressed():
     print("Settings cancelled")
+    get_tree().paused = false
     queue_free()
