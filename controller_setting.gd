@@ -1,6 +1,7 @@
 extends Control
 
 @onready var bindings_container = $Panel/VBoxContainer/ScrollContainer/MarginContainer/BindingsContainer
+@onready var scroll_container = $Panel/VBoxContainer/ScrollContainer
 var binding_row_scene
 var setting_new_binding = false
 var setting_new_binding_for
@@ -29,6 +30,8 @@ var move_actions = {
     "move_right": "Move Right",
 }
 
+var scroll_speed = 300.0
+
 func _ready():
     get_tree().paused = true
     process_mode = Node.PROCESS_MODE_WHEN_PAUSED
@@ -43,6 +46,16 @@ func _ready():
     # Connect buttons
     $Panel/VBoxContainer/HBoxContainer/SaveButton.pressed.connect(_on_save_pressed)
     $Panel/VBoxContainer/HBoxContainer/CancelButton.pressed.connect(_on_cancel_pressed)
+
+func _process(delta):
+    # Get right stick vertical axis
+    var right_stick_y = Input.get_joy_axis(0, JOY_AXIS_RIGHT_Y)
+    
+    # Apply scrolling if stick is moved beyond deadzone
+    if abs(right_stick_y) > 0.2:  # Deadzone
+        var scroll_amount = right_stick_y * scroll_speed * delta
+        scroll_container.scroll_vertical += int(scroll_amount)
+
 
 func populate_bindings():
     # Clear existing rows
@@ -92,6 +105,10 @@ func get_motion_name(axis_index: int, axis_value: float) -> String:
         return "L-Stick"
     if axis_index == 2 or axis_index == 3:
         return "R-Stick"
+    if axis_index == 4:
+        return "Left Trigger"
+    if axis_index == 5:
+        return "Right Trigger"
     return "Motion Axis: " + str(axis_index) + " Axis Value: " + str(axis_value)
             
     
