@@ -1,7 +1,7 @@
 [gd_scene load_steps=3 format=3 uid="uid://6hx117twmgbm"]
 
 [ext_resource type="FontFile" uid="uid://8x2jsl6a065e" path="res://fonts/Varnished.ttf" id="1_si8x7"]
-[ext_resource type="Script" path="./controller_setting.gd" id="3_741h4"]
+[ext_resource type="Script" uid="uid://cmvne23t4855" path="res://AlchemistAlcoveMods/controllerLayoutMod/controller_setting.gd" id="3_741h4"]
 
 [node name="ControllerSetting" type="Control"]
 layout_mode = 3

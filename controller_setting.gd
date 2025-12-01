@@ -29,9 +29,10 @@ var move_actions = {
 }
 
 func _ready():
-    var dir_path = ProjectSettings.get_setting("global/mod_directory")
+    var dir_path = ProjectSettings.localize_path(ProjectSettings.get_setting("global/mod_directory"))
     #var dir_path = ProjectSettings.get_setting("global/mod_directory")
-    var binding_row_scene_path = dir_path + "/controllerLayoutMod/binding_row.tscn"
+    var binding_row_scene_path = ProjectSettings.localize_path(dir_path + "/controllerLayoutMod/binding_row.tscn")
+    print("controller_settings.gd _ready() binding_row_scene_path " + binding_row_scene_path)
     binding_row_scene = load(binding_row_scene_path)
     populate_bindings()
     

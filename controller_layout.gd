@@ -59,15 +59,14 @@ var custom_action_bindings = {
 }
 
 func _on_loaded():
-    var dir_path = ProjectSettings.get_setting("global/mod_directory")
-    #var dir_path = OS.get_executable_path().get_base_dir() + 
-    #var dir_path = ProjectSettings.localize_path(ProjectSettings.get_setting("global/mod_directory"))
-    #var dir_path = ProjectSettings.get_setting("global/mod_directory")
-    inputHandlerPath = dir_path + "/controllerLayoutMod/input_handler.gd"
-    controllerSettingScenePath = dir_path + "/controllerLayoutMod/controller_setting.tscn"
+    var dir_path = ProjectSettings.localize_path(ProjectSettings.get_setting("global/mod_directory"))
+    print("on_loaded() mod base path " + dir_path)
+    inputHandlerPath = ProjectSettings.localize_path(dir_path + "/controllerLayoutMod/input_handler.gd")
+    controllerSettingScenePath = ProjectSettings.localize_path(dir_path + "/controllerLayoutMod/controller_setting.tscn")
     print("Mod dir: " + dir_path)
+    print("controllerSettingsPath: " + controllerSettingScenePath)
 
-    set_optimized_controller_settings()
+    #set_optimized_controller_settings()
 
 
     settingsScreen = load(controllerSettingScenePath)
