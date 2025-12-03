@@ -100,46 +100,36 @@ func _inject_pause_menu_button():
 
     # Get references to buttons for positioning and focus navigation
     var back_button = interactables.get_node_or_null("BackButton")
-    var quit_button = interactables.get_node_or_null("QuitButton")
-    
+    var sound_volume = interactables.get_node_or_null("SoundVolume")
+
     var controller_button = back_button.duplicate()
     controller_button.name = "ControllerSettingsButton"
     controller_button.text = "Controller Settings"
+    controller_button.clip_text = true
 
-    # Position between Back and Quit to Menu buttons
-   # if back_button:
-   #     controller_button.position = Vector2(back_button.position.x, 106.0)
-   #     controller_button.size = back_button.size
-   # else:
+    # Position at the end, after Sound Volume
+    if back_button:
+        controller_button.position = Vector2(back_button.position.x, 252.0)
+        controller_button.size = back_button.size
+    else:
         # Fallback to absolute positioning if BackButton not found
-   #     controller_button.position = Vector2(243.0, 106.0)
-  #      controller_button.size = Vector2(89.0, 8.0)
+        controller_button.position = Vector2(243.0, 252.0)
+        controller_button.size = Vector2(89.0, 8.0)
 
-    # Set up focus navigation - controller settings is between back and quit
-   # if back_button and quit_button:
-        # BackButton points down to ControllerSettings
-   #     back_button.focus_neighbor_bottom = back_button.get_path_to(controller_button)
+    # Set up focus navigation - controller settings is at the end
+    if sound_volume:
+        # SoundVolume points down to ControllerSettings
+        sound_volume.focus_neighbor_bottom = sound_volume.get_path_to(controller_button)
 
-        # ControllerSettings points up to BackButton and down to QuitButton
-   #     controller_button.focus_neighbor_top = controller_button.get_path_to(back_button)
-   #     controller_button.focus_neighbor_bottom = controller_button.get_path_to(quit_button)
-
-        # QuitButton points up to ControllerSettings
-    #    quit_button.focus_neighbor_top = quit_button.get_path_to(controller_button)
+        # ControllerSettings points up to SoundVolume (last item, no bottom neighbor)
+        controller_button.focus_neighbor_top = controller_button.get_path_to(sound_volume)
 
     # Connect button signal
     controller_button.pressed.connect(_on_controller_settings_button_pressed)
 
-    # Copy theme and style from other buttons
-    #if quit_button and quit_button.theme:
-    #    controller_button.theme = quit_button.theme
-    #    var focus_style = quit_button.get_theme_stylebox("focus")
-    #    if focus_style:
-    #        controller_button.add_theme_stylebox_override("focus", focus_style)
-
     # Add button to the scene
     interactables.add_child(controller_button)
-    print("Controller Settings button injected into pause menu between Back and Quit to Menu")
+    print("Controller Settings button injected into pause menu at the end")
 
 func _on_controller_settings_button_pressed():
     toggle_settings_screen()
