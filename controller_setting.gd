@@ -30,11 +30,34 @@ var move_actions = {
     "move_right": "Move Right",
 }
 
+var old_action_events = {}
+
+var saved_cancel_action_events
+
 var scroll_speed = 300.0
+
+func get_action_joy_event(action: String):
+    if action == "move":
+        action = "move_up"
+    var events = InputMap.action_get_events(action)
+    var filtered = get_JoyEvents(events)
+    if filtered.size() > 0:
+        return filtered.get(0)
+    return null
+
+func _safe_old_action_events():
+    for action in actions:
+        var action_event = get_action_joy_event(action)
+        print("_set_old_action_events: set key: " + action + " value: " + action_event.as_text())
+        old_action_events.set(action, action_event)
+        
 
 func _ready():
     get_tree().paused = true
     process_mode = Node.PROCESS_MODE_WHEN_PAUSED
+    _safe_old_action_events()
+    saved_cancel_action_events = InputMap.action_get_events("cancel")
+    InputMap.action_erase_events("cancel")
 
     var dir_path = ProjectSettings.localize_path(ProjectSettings.get_setting("global/mod_directory"))
     #var dir_path = ProjectSettings.get_setting("global/mod_directory")
@@ -72,14 +95,22 @@ func populate_bindings():
         row.get_node("ActionLabel").text = actions[action]
         
         # Get current binding
-        var current_binding = get_action_binding(action)
-        row.get_node("BindingLabel").text = current_binding
+        var current_binding = old_action_events.get(action)
+        #var current_binding = get_action_binding(action)
+        row.get_node("BindingLabel").text = get_action_event_name(current_binding)
         
         # Connect rebind button
         row.get_node("RebindButton").pressed.connect(_on_rebind_pressed.bind(action, row))
         if isFirstRow:
             row.get_node("RebindButton").grab_focus()
         isFirstRow = false
+
+func get_action_event_name(event):
+    if event is InputEventJoypadButton:
+        return get_button_name(event.button_index)
+    if event is InputEventJoypadMotion:
+        return get_motion_name(event.axis, event.axis_value)
+    return "Not bound"
 
 func get_action_binding(action: String) -> String:
     if action == "move":
@@ -196,6 +227,9 @@ func bindMoveActions(event: InputEventJoypadMotion):
         
     
 func _input(event):
+    if !setting_new_binding and event is InputEventJoypadButton and event.is_pressed():
+        if event.button_index == JOY_BUTTON_BACK:
+            _on_cancel_pressed()
     if setting_new_binding and (event is InputEventJoypadButton or event is InputEventJoypadMotion):
         if setting_new_binding_for == "move":
             print("rebind move")
@@ -215,10 +249,18 @@ func _input(event):
 
 func _on_save_pressed():
     print("Settings saved")
-    get_tree().paused = false
-    queue_free()
+    _exit_scene()
+    
 
 func _on_cancel_pressed():
     print("Settings cancelled")
+    _exit_scene()
+    
+func _exit_scene():
+    _reset_cancel_action_events()
     get_tree().paused = false
     queue_free()
+    
+func _reset_cancel_action_events():
+    for event in saved_cancel_action_events:
+        InputMap.action_add_event("cancel", event)
