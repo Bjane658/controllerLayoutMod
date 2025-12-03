@@ -98,37 +98,30 @@ func _inject_pause_menu_button():
         print("Controller Settings button already exists")
         return
 
+    # Get references to last item and first button for focus navigation
+    var sound_vol = interactables.get_node_or_null("SoundVolume")
+    var quit_button = interactables.get_node_or_null("QuitButton")
+
     # Create the button
     var controller_button = Button.new()
     controller_button.name = "ControllerSettingsButton"
     controller_button.text = "Controller Settings"
-    controller_button.position = Vector2(243.0, 136.0)
-    controller_button.size = Vector2(89.0, 8.0)
 
-    # Get references to neighboring buttons
-    var quit_button = interactables.get_node_or_null("QuitButton")
-    var window_mode = interactables.get_node_or_null("WindowMode")
+    # Position relative to the last item (SoundVolume)
+    if sound_vol:
+        controller_button.position = Vector2(sound_vol.position.x, sound_vol.position.y + 21.0)
+        controller_button.size = sound_vol.size
+    else:
+        # Fallback to absolute positioning if SoundVolume not found
+        controller_button.position = Vector2(243.0, 252.0)
+        controller_button.size = Vector2(89.0, 8.0)
 
-    if quit_button and window_mode:
-        # Set up focus navigation
-        controller_button.focus_neighbor_top = controller_button.get_path_to(quit_button)
-        controller_button.focus_neighbor_bottom = controller_button.get_path_to(window_mode)
+    if sound_vol:
+        # Set up focus navigation - controller settings is last item
+        controller_button.focus_neighbor_top = controller_button.get_path_to(sound_vol)
 
-        # Update neighboring buttons' focus
-        quit_button.focus_neighbor_bottom = quit_button.get_path_to(controller_button)
-        window_mode.focus_neighbor_top = window_mode.get_path_to(controller_button)
-
-        # Shift WindowMode and items below down by 10 pixels
-        window_mode.position.y += 10
-        var master_vol = interactables.get_node_or_null("MasterVolume")
-        if master_vol:
-            master_vol.position.y += 10
-        var music_vol = interactables.get_node_or_null("MusicVolume")
-        if music_vol:
-            music_vol.position.y += 10
-        var sound_vol = interactables.get_node_or_null("SoundVolume")
-        if sound_vol:
-            sound_vol.position.y += 10
+        # Update sound volume to point to controller settings
+        sound_vol.focus_neighbor_bottom = sound_vol.get_path_to(controller_button)
 
     # Connect button signal
     controller_button.pressed.connect(_on_controller_settings_button_pressed)
@@ -142,7 +135,7 @@ func _inject_pause_menu_button():
 
     # Add button to the scene
     interactables.add_child(controller_button)
-    print("Controller Settings button injected into pause menu")
+    print("Controller Settings button injected into pause menu as last item")
 
 func _on_controller_settings_button_pressed():
     toggle_settings_screen()
