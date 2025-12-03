@@ -37,7 +37,6 @@ func _ready():
     process_mode = Node.PROCESS_MODE_WHEN_PAUSED
 
     var dir_path = ProjectSettings.localize_path(ProjectSettings.get_setting("global/mod_directory"))
-    #var dir_path = ProjectSettings.get_setting("global/mod_directory")
     var binding_row_scene_path = ProjectSettings.localize_path(dir_path + "/controllerLayoutMod/binding_row.tscn")
     print("controller_settings.gd _ready() binding_row_scene_path " + binding_row_scene_path)
     binding_row_scene = load(binding_row_scene_path)
@@ -48,34 +47,27 @@ func _ready():
     $Panel/VBoxContainer/HBoxContainer/CancelButton.pressed.connect(_on_cancel_pressed)
 
 func _process(delta):
-    # Get right stick vertical axis
     var right_stick_y = Input.get_joy_axis(0, JOY_AXIS_RIGHT_Y)
     
-    # Apply scrolling if stick is moved beyond deadzone
-    if abs(right_stick_y) > 0.2:  # Deadzone
+    if abs(right_stick_y) > 0.2:
         var scroll_amount = right_stick_y * scroll_speed * delta
         scroll_container.scroll_vertical += int(scroll_amount)
 
 
 func populate_bindings():
-    # Clear existing rows
     for child in bindings_container.get_children():
         child.queue_free()
     var isFirstRow = true
-    # Create a row for each action
+
     for action in actions:
         var row = binding_row_scene.instantiate()
         bindings_container.add_child(row)
         
-        
-        # Set action name
         row.get_node("ActionLabel").text = actions[action]
         
-        # Get current binding
         var current_binding = get_action_binding(action)
         row.get_node("BindingLabel").text = current_binding
         
-        # Connect rebind button
         row.get_node("RebindButton").pressed.connect(_on_rebind_pressed.bind(action, row))
         if isFirstRow:
             row.get_node("RebindButton").grab_focus()
@@ -196,6 +188,9 @@ func bindMoveActions(event: InputEventJoypadMotion):
         
     
 func _input(event):
+    if setting_new_binding == false and event is InputEventJoypadButton:
+        $Panel/VBoxContainer/HBoxContainer/CancelButton.grab_focus()
+        
     if setting_new_binding and (event is InputEventJoypadButton or event is InputEventJoypadMotion):
         if setting_new_binding_for == "move":
             print("rebind move")

@@ -168,18 +168,11 @@ func get_JoyEvents(events: Array) -> Array:
     return filteredEvents
 
 func _input(event):
-    if event is InputEventJoypadMotion:
-        print("Motion: axis: " + str(event.axis) + " value: " + str(event.axis_value))
-    if event is InputEventJoypadButton and event.pressed:
-        print("Joypad button pressed: ", event.button_index)
-        
+    if event is InputEventJoypadButton and event.pressed:        
         if event.button_index == JOY_BUTTON_BACK:
-            print("- button pressed!")
             toggle_settings_screen()
             
     if event is InputEventKey and event.pressed:
-        print("InputEvent detected!")
-        print("Keycode: ", event.physical_keycode)
         if event.physical_keycode == 79:
             toggle_settings_screen()
         
