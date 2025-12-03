@@ -1,4 +1,4 @@
-extends Control
+extends CanvasLayer
 
 @onready var bindings_container = $Panel/VBoxContainer/ScrollContainer/MarginContainer/BindingsContainer
 @onready var scroll_container = $Panel/VBoxContainer/ScrollContainer
