@@ -98,8 +98,8 @@ func _inject_pause_menu_button():
         print("Controller Settings button already exists")
         return
 
-    # Get references to last item and first button for focus navigation
-    var sound_vol = interactables.get_node_or_null("SoundVolume")
+    # Get references to buttons for positioning and focus navigation
+    var back_button = interactables.get_node_or_null("BackButton")
     var quit_button = interactables.get_node_or_null("QuitButton")
 
     # Create the button
@@ -107,21 +107,26 @@ func _inject_pause_menu_button():
     controller_button.name = "ControllerSettingsButton"
     controller_button.text = "Controller Settings"
 
-    # Position relative to the last item (SoundVolume)
-    if sound_vol:
-        controller_button.position = Vector2(sound_vol.position.x, sound_vol.position.y + 21.0)
-        controller_button.size = sound_vol.size
+    # Position between Back and Quit to Menu buttons
+    if back_button:
+        controller_button.position = Vector2(back_button.position.x, 106.0)
+        controller_button.size = back_button.size
     else:
-        # Fallback to absolute positioning if SoundVolume not found
-        controller_button.position = Vector2(243.0, 252.0)
+        # Fallback to absolute positioning if BackButton not found
+        controller_button.position = Vector2(243.0, 106.0)
         controller_button.size = Vector2(89.0, 8.0)
 
-    if sound_vol:
-        # Set up focus navigation - controller settings is last item
-        controller_button.focus_neighbor_top = controller_button.get_path_to(sound_vol)
+    # Set up focus navigation - controller settings is between back and quit
+    if back_button and quit_button:
+        # BackButton points down to ControllerSettings
+        back_button.focus_neighbor_bottom = back_button.get_path_to(controller_button)
 
-        # Update sound volume to point to controller settings
-        sound_vol.focus_neighbor_bottom = sound_vol.get_path_to(controller_button)
+        # ControllerSettings points up to BackButton and down to QuitButton
+        controller_button.focus_neighbor_top = controller_button.get_path_to(back_button)
+        controller_button.focus_neighbor_bottom = controller_button.get_path_to(quit_button)
+
+        # QuitButton points up to ControllerSettings
+        quit_button.focus_neighbor_top = quit_button.get_path_to(controller_button)
 
     # Connect button signal
     controller_button.pressed.connect(_on_controller_settings_button_pressed)
@@ -135,7 +140,7 @@ func _inject_pause_menu_button():
 
     # Add button to the scene
     interactables.add_child(controller_button)
-    print("Controller Settings button injected into pause menu as last item")
+    print("Controller Settings button injected into pause menu between Back and Quit to Menu")
 
 func _on_controller_settings_button_pressed():
     toggle_settings_screen()
