@@ -76,8 +76,77 @@ func _on_loaded():
     call_deferred("_add_to_tree")
 
 func _add_to_tree():
+    name = "ControllerLayoutMod"
     Engine.get_main_loop().root.add_child(self)
-    
+    call_deferred("_inject_pause_menu_button")
+
+func _inject_pause_menu_button():
+    var pause_menu = get_tree().root.get_node_or_null("/root/PauseMenu")
+    if !pause_menu:
+        print("PauseMenu not found, retrying...")
+        await get_tree().create_timer(0.5).timeout
+        _inject_pause_menu_button()
+        return
+
+    var interactables = pause_menu.get_node_or_null("Interactables")
+    if !interactables:
+        print("Interactables container not found")
+        return
+
+    # Check if button already exists
+    if interactables.get_node_or_null("ControllerSettingsButton"):
+        print("Controller Settings button already exists")
+        return
+
+    # Create the button
+    var controller_button = Button.new()
+    controller_button.name = "ControllerSettingsButton"
+    controller_button.text = "Controller Settings"
+    controller_button.position = Vector2(243.0, 136.0)
+    controller_button.size = Vector2(89.0, 8.0)
+
+    # Get references to neighboring buttons
+    var quit_button = interactables.get_node_or_null("QuitButton")
+    var window_mode = interactables.get_node_or_null("WindowMode")
+
+    if quit_button and window_mode:
+        # Set up focus navigation
+        controller_button.focus_neighbor_top = controller_button.get_path_to(quit_button)
+        controller_button.focus_neighbor_bottom = controller_button.get_path_to(window_mode)
+
+        # Update neighboring buttons' focus
+        quit_button.focus_neighbor_bottom = quit_button.get_path_to(controller_button)
+        window_mode.focus_neighbor_top = window_mode.get_path_to(controller_button)
+
+        # Shift WindowMode and items below down by 10 pixels
+        window_mode.position.y += 10
+        var master_vol = interactables.get_node_or_null("MasterVolume")
+        if master_vol:
+            master_vol.position.y += 10
+        var music_vol = interactables.get_node_or_null("MusicVolume")
+        if music_vol:
+            music_vol.position.y += 10
+        var sound_vol = interactables.get_node_or_null("SoundVolume")
+        if sound_vol:
+            sound_vol.position.y += 10
+
+    # Connect button signal
+    controller_button.pressed.connect(_on_controller_settings_button_pressed)
+
+    # Copy theme and style from other buttons
+    if quit_button and quit_button.theme:
+        controller_button.theme = quit_button.theme
+        var focus_style = quit_button.get_theme_stylebox("focus")
+        if focus_style:
+            controller_button.add_theme_stylebox_override("focus", focus_style)
+
+    # Add button to the scene
+    interactables.add_child(controller_button)
+    print("Controller Settings button injected into pause menu")
+
+func _on_controller_settings_button_pressed():
+    toggle_settings_screen()
+
 func set_optimized_controller_settings():
     for action in custom_action_bindings:
         print("Set binding for: " + action)

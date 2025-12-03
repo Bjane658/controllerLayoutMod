@@ -215,10 +215,14 @@ func _input(event):
 
 func _on_save_pressed():
     print("Settings saved")
-    get_tree().paused = false
+    var pause_menu = get_tree().root.get_node_or_null("/root/PauseMenu")
+    if !pause_menu or !pause_menu.visible:
+        get_tree().paused = false
     queue_free()
 
 func _on_cancel_pressed():
     print("Settings cancelled")
-    get_tree().paused = false
+    var pause_menu = get_tree().root.get_node_or_null("/root/PauseMenu")
+    if !pause_menu or !pause_menu.visible:
+        get_tree().paused = false
     queue_free()
