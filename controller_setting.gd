@@ -8,8 +8,6 @@ var setting_new_binding_for
 var setting_new_binding_row
 
 var actions = {
-    "interact": "Interact",
-    "cancel": "Cancel",
     "wait": "Wait",
     "move": "Move",
     "inv_up": "Inventory Up",
@@ -71,7 +69,11 @@ var custom_action_bindings = {}
 
 var saved_cancel_action_events
 
+var settings_old_binding_label = ""
+
 var scroll_speed = 300.0
+
+var disabled_buttons = [JOY_BUTTON_A, JOY_BUTTON_B, JOY_BUTTON_BACK, JOY_BUTTON_START]
 
 func set_custom_action_bindings():
     for action in custom_action_bindings:
@@ -132,14 +134,18 @@ func _safe_current_action_events():
         var action_event = get_action_joy_event(action)
         print("_set_old_action_events: set key: " + action + " value: " + action_event.as_text())
         old_action_events.set(action, action_event)
-        
+ 
+func disableCancelAction():
+    saved_cancel_action_events = get_action_joy_event("cancel")
+    if saved_cancel_action_events != null:
+        InputMap.action_erase_event("cancel", saved_cancel_action_events)
 
 func _ready():
     get_tree().paused = true
     process_mode = Node.PROCESS_MODE_WHEN_PAUSED
     _safe_current_action_events()
-    saved_cancel_action_events = InputMap.action_get_events("cancel")
-    InputMap.action_erase_events("cancel")
+    disableCancelAction()
+    
 
     var dir_path = ProjectSettings.localize_path(ProjectSettings.get_setting("global/mod_directory"))
     var binding_row_scene_path = ProjectSettings.localize_path(dir_path + "/controllerLayoutMod/binding_row.tscn")
@@ -218,8 +224,10 @@ func get_button_name(button_index: int) -> String:
         JOY_BUTTON_RIGHT_SHOULDER: return "Right Bumper"
         _: return "Button " + str(button_index)
 
+   
 func _on_rebind_pressed(action: String, row):
     print("Rebinding action: ", action)
+    settings_old_binding_label = row.get_node("BindingLabel").text
     row.get_node("BindingLabel").text = "Press a button..."
     setting_new_binding = true
     setting_new_binding_for = action
@@ -267,22 +275,32 @@ func getAxisFromStick(stick, axis: String):
   
 
 func apply_changes():
-    set_custom_action_bindings()          
+    set_custom_action_bindings()
+    
+func isDisabledButton(event):
+    if event is InputEventJoypadButton and disabled_buttons.has(event.button_index):
+        return true
+    return false          
   
 func _input(event):
     if !setting_new_binding and event is InputEventJoypadButton and event.is_pressed():
         if event.button_index == JOY_BUTTON_BACK:
             _on_cancel_pressed()
-    if setting_new_binding and (event is InputEventJoypadButton or event is InputEventJoypadMotion):
+    if setting_new_binding and (event is InputEventJoypadButton or event is InputEventJoypadMotion) and event.is_pressed():
         if event is InputEventJoypadMotion and abs(event.axis_value) < 0.5:
             return
         print("Rebind: " + event.as_text())
-        setting_new_binding_row.get_node("BindingLabel").text = getJoyName(event)
-        fill_custom_binding(setting_new_binding_for, event)
-        print_custom_action_bindings()
+        if isDisabledButton(event):
+            setting_new_binding_row.get_node("BindingLabel").text = settings_old_binding_label
+
+        else:
+            setting_new_binding_row.get_node("BindingLabel").text = getJoyName(event)
+            fill_custom_binding(setting_new_binding_for, event)
+            print_custom_action_bindings()
         setting_new_binding = false
         setting_new_binding_for = ""
         setting_new_binding_row = null
+        settings_old_binding_label = ""
 
 func _on_save_pressed():
     apply_changes()
@@ -295,10 +313,9 @@ func _on_cancel_pressed():
     _exit_scene()
     
 func _exit_scene():
-    _reset_cancel_action_events()
+    enableCancelAction()
     get_tree().paused = false
     queue_free()
     
-func _reset_cancel_action_events():
-    for event in saved_cancel_action_events:
-        InputMap.action_add_event("cancel", event)
+func enableCancelAction():
+    InputMap.action_add_event("cancel", saved_cancel_action_events)
