@@ -7,7 +7,6 @@ var setting_new_binding = false
 var setting_new_binding_for
 var setting_new_binding_row
 
-# Define your actions and their display names
 var actions = {
     "interact": "Interact",
     "cancel": "Cancel",
@@ -32,9 +31,92 @@ var move_actions = {
 
 var old_action_events = {}
 
+enum EventType { BUTTON, MOTION}
+var sample = {
+    "move_right": {
+        "type": EventType.MOTION,
+        "axis": JOY_AXIS_LEFT_X,
+        "axis_value"  : 1.0
+    },
+    "inv_up": {
+        "type": EventType.BUTTON,
+        "button_index": JOY_BUTTON_DPAD_UP
+    },
+}
+
+var move_bindings_template = { 
+    "move_up": {
+        "type": EventType.MOTION,
+        "axis": "y",
+        "axis_value"  : -1.0
+    },
+    "move_down": {
+        "type": EventType.MOTION,
+        "axis": "y",
+        "axis_value"  : 1.0
+    },
+    "move_left": {
+        "type": EventType.MOTION,
+        "axis": "x",
+        "axis_value"  : -1.0
+    },
+    "move_right": {
+        "type": EventType.MOTION,
+        "axis": "x",
+        "axis_value"  : 1.0
+    },  
+}
+
+var custom_action_bindings = {}
+
 var saved_cancel_action_events
 
 var scroll_speed = 300.0
+
+func set_custom_action_bindings():
+    for action in custom_action_bindings:
+        print("Set binding for: " + action)
+        var event
+        if custom_action_bindings[action]['type'] == EventType.BUTTON:
+            event = InputEventJoypadButton.new()
+            event.button_index = custom_action_bindings[action]['button_index']
+    
+        if custom_action_bindings[action]['type'] == EventType.MOTION:
+            event = InputEventJoypadMotion.new()
+            event.axis = custom_action_bindings[action]['axis']
+            event.axis_value = custom_action_bindings[action]['axis_value']
+        if custom_action_bindings[action]['type'] != EventType.MOTION && custom_action_bindings[action]['type'] != EventType.BUTTON:
+            print("custom action has no valid event type (BUTTION, MOTION)")
+            return
+        remove_JoyEvents(action, InputMap.action_get_events(action))
+        InputMap.action_add_event(action, event)
+
+func print_custom_action_bindings():
+    print(JSON.stringify(custom_action_bindings, "  "))
+
+func fill_custom_move_bindings(axis):
+    var stick = whichStickFromAxis(axis)
+    for move_action in move_bindings_template:
+        var newBinding = move_bindings_template[move_action]
+        newBinding["axis"] = getAxisFromStick(stick, newBinding["axis"])
+        custom_action_bindings.set(move_action, newBinding)
+        
+func getEventType(event):
+    if event is InputEventJoypadMotion:
+        return EventType.MOTION
+    return EventType.BUTTON
+
+func fill_custom_binding(action, event):
+    if action == "move":
+        fill_custom_move_bindings(event.axis)
+        return
+    var type = getEventType(event)
+    var newBinding
+    if event is InputEventJoypadMotion:
+        newBinding = {"type": type, "axis": event.axis, "axis_value" : extrapolateAxisValue(event.axis_value)}
+    if event is InputEventJoypadButton:
+        newBinding = {"type": type, "button_index": event.button_index}
+    custom_action_bindings.set(action, newBinding)
 
 func get_action_joy_event(action: String):
     if action == "move":
@@ -45,7 +127,7 @@ func get_action_joy_event(action: String):
         return filtered.get(0)
     return null
 
-func _safe_old_action_events():
+func _safe_current_action_events():
     for action in actions:
         var action_event = get_action_joy_event(action)
         print("_set_old_action_events: set key: " + action + " value: " + action_event.as_text())
@@ -55,14 +137,12 @@ func _safe_old_action_events():
 func _ready():
     get_tree().paused = true
     process_mode = Node.PROCESS_MODE_WHEN_PAUSED
-    _safe_old_action_events()
+    _safe_current_action_events()
     saved_cancel_action_events = InputMap.action_get_events("cancel")
     InputMap.action_erase_events("cancel")
 
     var dir_path = ProjectSettings.localize_path(ProjectSettings.get_setting("global/mod_directory"))
-    #var dir_path = ProjectSettings.get_setting("global/mod_directory")
     var binding_row_scene_path = ProjectSettings.localize_path(dir_path + "/controllerLayoutMod/binding_row.tscn")
-    print("controller_settings.gd _ready() binding_row_scene_path " + binding_row_scene_path)
     binding_row_scene = load(binding_row_scene_path)
     populate_bindings()
     
@@ -71,35 +151,26 @@ func _ready():
     $Panel/VBoxContainer/HBoxContainer/CancelButton.pressed.connect(_on_cancel_pressed)
 
 func _process(delta):
-    # Get right stick vertical axis
     var right_stick_y = Input.get_joy_axis(0, JOY_AXIS_RIGHT_Y)
     
-    # Apply scrolling if stick is moved beyond deadzone
-    if abs(right_stick_y) > 0.2:  # Deadzone
+    if abs(right_stick_y) > 0.2:
         var scroll_amount = right_stick_y * scroll_speed * delta
         scroll_container.scroll_vertical += int(scroll_amount)
 
 
 func populate_bindings():
-    # Clear existing rows
     for child in bindings_container.get_children():
         child.queue_free()
     var isFirstRow = true
-    # Create a row for each action
     for action in actions:
         var row = binding_row_scene.instantiate()
         bindings_container.add_child(row)
         
-        
-        # Set action name
         row.get_node("ActionLabel").text = actions[action]
         
-        # Get current binding
         var current_binding = old_action_events.get(action)
-        #var current_binding = get_action_binding(action)
         row.get_node("BindingLabel").text = get_action_event_name(current_binding)
         
-        # Connect rebind button
         row.get_node("RebindButton").pressed.connect(_on_rebind_pressed.bind(action, row))
         if isFirstRow:
             row.get_node("RebindButton").grab_focus()
@@ -110,18 +181,6 @@ func get_action_event_name(event):
         return get_button_name(event.button_index)
     if event is InputEventJoypadMotion:
         return get_motion_name(event.axis, event.axis_value)
-    return "Not bound"
-
-func get_action_binding(action: String) -> String:
-    if action == "move":
-        action = "move_up"
-    var events = InputMap.action_get_events(action)
-    if events.size() > 0:
-        for event in events:
-            if event is InputEventJoypadButton:
-                return get_button_name(event.button_index)
-            if event is InputEventJoypadMotion:
-                return get_motion_name(event.axis, event.axis_value)
     return "Not bound"
 
 func getJoyName(event):
@@ -186,12 +245,12 @@ func extrapolateAxisValue(axis_value):
     if axis_value < 0:
         return -1.0
     return 1.0
-    
-func updateAxisValue(event: InputEventJoypadMotion, axis: int, axis_value: float):
-    event.set_axis(axis)
-    event.set_axis_value(axis_value)
-    return event
 
+func whichStickFromAxis(axis):
+    if axis == JOY_AXIS_LEFT_X or axis == JOY_AXIS_LEFT_Y:
+        return "left"
+    return "right"
+    
 func whichStick(event: InputEventJoypadMotion):
     if event.axis == JOY_AXIS_LEFT_X or event.axis == JOY_AXIS_LEFT_Y:
         return "left"
@@ -205,49 +264,28 @@ func getAxisFromStick(stick, axis: String):
     if axis == "x":
         return JOY_AXIS_RIGHT_X
     return JOY_AXIS_RIGHT_Y
+  
 
-func addMoveActionEvent(event: InputEventJoypadMotion, moveAction: String):
-    print("adding move action event: " + str(event.axis) + " " + str(event.axis_value) + " " + moveAction)
-    var stick = whichStick(event)
-    match moveAction:
-        "move_up": InputMap.action_add_event(moveAction, updateAxisValue(event,getAxisFromStick(stick, "y"), -1.0))
-        "move_down": InputMap.action_add_event(moveAction, updateAxisValue(event,getAxisFromStick(stick, "x"), 1.0))
-        "move_left": InputMap.action_add_event(moveAction, updateAxisValue(event,getAxisFromStick(stick, "y"), -1.0))
-        "move_right": InputMap.action_add_event(moveAction, updateAxisValue(event,getAxisFromStick(stick, "x"), 1.0))
-            
-func bindMoveActions(event: InputEventJoypadMotion):
-    for moveAction in move_actions:
-        var moveActionEvents = InputMap.action_get_events(moveAction)
-        remove_JoyEvents(moveAction, moveActionEvents)
-        addMoveActionEvent(event, moveAction)
-        var newMoveActionEvents = InputMap.action_get_events(moveAction)
-        for newMoveActionEvent in newMoveActionEvents:
-            if newMoveActionEvent is InputEventJoypadMotion:
-                print("New move action event for " + moveAction + "axis: " + str(newMoveActionEvent.axis) + " value: " + str(newMoveActionEvent.axis_value))
-        
-    
+func apply_changes():
+    set_custom_action_bindings()          
+  
 func _input(event):
     if !setting_new_binding and event is InputEventJoypadButton and event.is_pressed():
         if event.button_index == JOY_BUTTON_BACK:
             _on_cancel_pressed()
     if setting_new_binding and (event is InputEventJoypadButton or event is InputEventJoypadMotion):
-        if setting_new_binding_for == "move":
-            print("rebind move")
-            bindMoveActions(event)
-        else:
-            print("rebind other than move")
-            var actionEvents = InputMap.action_get_events(setting_new_binding_for)
-            remove_JoyEvents(setting_new_binding_for, actionEvents)
-            if event is InputEventJoypadMotion:
-                event.axis_value = extrapolateAxisValue(event.axis_value)
-            InputMap.action_add_event(setting_new_binding_for, event)
-            print("Sett new input for " + setting_new_binding_for)
-            setting_new_binding_row.get_node("BindingLabel").text = getJoyName(event)
+        if event is InputEventJoypadMotion and abs(event.axis_value) < 0.5:
+            return
+        print("Rebind: " + event.as_text())
+        setting_new_binding_row.get_node("BindingLabel").text = getJoyName(event)
+        fill_custom_binding(setting_new_binding_for, event)
+        print_custom_action_bindings()
         setting_new_binding = false
         setting_new_binding_for = ""
         setting_new_binding_row = null
 
 func _on_save_pressed():
+    apply_changes()
     print("Settings saved")
     _exit_scene()
     
